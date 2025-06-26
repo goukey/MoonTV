@@ -1050,25 +1050,23 @@ function PlayPageClient() {
 
   /* -------------------- 设置 meta theme-color 为纯黑 -------------------- */
   useEffect(() => {
-    if (typeof document === 'undefined') return;
+    const originalThemeColorTags = Array.from(
+      document.querySelectorAll('meta[name="theme-color"]')
+    );
 
-    // 查找或创建 meta[name="theme-color"]
-    let metaTag = document.querySelector(
-      'meta[name="theme-color"]'
-    ) as HTMLMetaElement | null;
+    // 移除已有的 theme-color 标签
+    originalThemeColorTags.forEach((tag) => tag.remove());
 
-    if (!metaTag) {
-      metaTag = document.createElement('meta');
-      metaTag.setAttribute('name', 'theme-color');
-      document.head.appendChild(metaTag);
-    }
+    // 添加播放页专用的 theme-color 标签
+    const playerThemeColorTag = document.createElement('meta');
+    playerThemeColorTag.name = 'theme-color';
+    playerThemeColorTag.content = '#000000';
+    document.head.appendChild(playerThemeColorTag);
 
-    // 记录原始颜色，并设置为纯黑
-    metaTag.setAttribute('content', '#000000');
-
-    // 卸载时恢复
+    // 组件卸载时恢复原有的 theme-color 标签
     return () => {
-      metaTag?.setAttribute('content', '#e6f3fb');
+      playerThemeColorTag.remove();
+      originalThemeColorTags.forEach((tag) => document.head.appendChild(tag));
     };
   }, []);
 
@@ -1103,10 +1101,18 @@ function PlayPageClient() {
           </div>
           <div className='text-base mb-6'>{error}</div>
           <button
-            onClick={() => window.history.back()}
+            onClick={() => {
+              if (videoTitle) {
+                window.location.href = `/aggregate?q=${encodeURIComponent(
+                  videoTitle
+                )}${videoYear ? `&year=${encodeURIComponent(videoYear)}` : ''}`;
+              } else {
+                window.location.href = '/';
+              }
+            }}
             className='px-6 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors'
           >
-            返回
+            {videoTitle ? '返回选源' : '返回首页'}
           </button>
         </div>
       </div>
@@ -1119,10 +1125,19 @@ function PlayPageClient() {
         <div className='text-white text-center'>
           <div className='text-xl font-semibold mb-4'>未找到视频</div>
           <button
-            onClick={() => window.history.back()}
+            onClick={() => {
+              // 返回选源页
+              if (videoTitle) {
+                window.location.href = `/aggregate?q=${encodeURIComponent(
+                  videoTitle
+                )}${videoYear ? `&year=${encodeURIComponent(videoYear)}` : ''}`;
+              } else {
+                window.location.href = '/';
+              }
+            }}
             className='px-6 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors'
           >
-            返回
+            {videoTitle ? '返回选源' : '返回首页'}
           </button>
         </div>
       </div>
