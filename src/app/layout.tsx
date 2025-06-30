@@ -4,19 +4,16 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 
 import AuthProvider from '../components/AuthProvider';
+import { SiteProvider } from '../components/SiteProvider';
 import { ThemeProvider } from '../components/ThemeProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const dynamic = 'force-dynamic';
-
-export function generateMetadata(): Metadata {
-  return {
-    title: process.env.NEXT_PUBLIC_SITE_NAME || 'MoonTV',
-    description: '影视聚合',
-    manifest: '/manifest.json',
-  };
-}
+export const metadata: Metadata = {
+  title: process.env.SITE_NAME || 'MoonTV',
+  description: '影视聚合',
+  manifest: '/manifest.json',
+};
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -31,6 +28,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const siteName = process.env.SITE_NAME || 'MoonTV';
+
   return (
     <html lang='zh-CN' suppressHydrationWarning>
       <body
@@ -42,7 +41,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <SiteProvider siteName={siteName}>{children}</SiteProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

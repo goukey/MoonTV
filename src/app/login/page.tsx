@@ -3,16 +3,16 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 
+import { useSite } from '@/components/SiteProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
-export const dynamic = 'force-dynamic';
-
-function LoginPageClient({ siteName }: { siteName: string }) {
+function LoginPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { siteName } = useSite();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -90,10 +90,9 @@ function LoginPageClient({ siteName }: { siteName: string }) {
 }
 
 export default function LoginPage() {
-  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'MoonTV';
   return (
     <Suspense>
-      <LoginPageClient siteName={siteName} />
+      <LoginPageClient />
     </Suspense>
   );
 }
