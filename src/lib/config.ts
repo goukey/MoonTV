@@ -52,24 +52,17 @@ export const API_CONFIG = {
 let cachedConfig: Config;
 
 if (process.env.DOCKER_ENV === 'true') {
-  // 为了兼容 Edge Runtime，这里通过 eval("require") 的方式按需加载 fs 和 path，
-  // 避免在打包阶段将 Node 内置模块打进 Edge bundle。
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const req = eval('require') as any;
-    const fs = req('fs') as typeof import('fs');
-    const path = req('path') as typeof import('path');
+  // 这里用 eval("require") 避开静态分析，防止 Edge Runtime 打包时报 "Can't resolve 'fs'"
+  // 在实际 Node.js 运行时才会执行到，因此不会影响 Edge 环境。
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  const _require = eval('require') as NodeRequire;
+  const fs = _require('fs') as typeof import('fs');
+  const path = _require('path') as typeof import('path');
 
-    const configPath = path.join(process.cwd(), 'config.json');
-    const raw = fs.readFileSync(configPath, 'utf-8');
-    cachedConfig = JSON.parse(raw) as Config;
-  } catch (error) {
-    console.error(
-      '[config] 读取 config.json 失败，回退至编译时配置 →',
-      (error as Error).message
-    );
-    cachedConfig = runtimeConfig as unknown as Config;
-  }
+  const configPath = path.join(process.cwd(), 'config.json');
+  const raw = fs.readFileSync(configPath, 'utf-8');
+  cachedConfig = JSON.parse(raw) as Config;
+  console.log('load dynamic config success');
 } else {
   // 默认使用编译时生成的配置
   cachedConfig = runtimeConfig as unknown as Config;
