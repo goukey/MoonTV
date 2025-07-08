@@ -5,7 +5,7 @@
 import Artplayer from 'artplayer';
 import Hls from 'hls.js';
 import { Heart } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
 import {
@@ -33,6 +33,7 @@ declare global {
 }
 
 function PlayPageClient() {
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   // -----------------------------------------------------------------------------
@@ -50,7 +51,7 @@ function PlayPageClient() {
   const [favorited, setFavorited] = useState(false);
 
   // 去广告开关（从 localStorage 继承，默认 true）
-  const [blockAdEnabled, _setBlockAdEnabled] = useState<boolean>(() => {
+  const [blockAdEnabled, setBlockAdEnabled] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const v = localStorage.getItem('enable_blockad');
       if (v !== null) return v === 'true';
@@ -74,6 +75,7 @@ function PlayPageClient() {
   const currentSourceRef = useRef(currentSource);
   const currentIdRef = useRef(currentId);
   const videoTitleRef = useRef(videoTitle);
+  const videoYearRef = useRef(videoYear);
   const detailRef = useRef<VideoDetail | null>(detail);
   const currentEpisodeIndexRef = useRef(currentEpisodeIndex);
 
@@ -84,7 +86,15 @@ function PlayPageClient() {
     detailRef.current = detail;
     currentEpisodeIndexRef.current = currentEpisodeIndex;
     videoTitleRef.current = videoTitle;
-  }, [currentSource, currentId, detail, currentEpisodeIndex, videoTitle]);
+    videoYearRef.current = videoYear;
+  }, [
+    currentSource,
+    currentId,
+    detail,
+    currentEpisodeIndex,
+    videoTitle,
+    videoYear,
+  ]);
 
   // 视频播放地址
   const [videoUrl, setVideoUrl] = useState('');
@@ -276,12 +286,12 @@ function PlayPageClient() {
           const detailData = await fetchVideoDetail({
             source: currentSource,
             id: currentId,
-            fallbackTitle: videoTitle.trim(),
-            fallbackYear: videoYear,
+            fallbackTitle: videoTitleRef.current.trim(),
+            fallbackYear: videoYearRef.current,
           });
 
           // 更新状态保存详情
-          setVideoTitle(detailData.title || videoTitle);
+          setVideoTitle(detailData.title || videoTitleRef.current);
           setVideoCover(detailData.poster);
           setDetail(detailData);
 
@@ -421,14 +431,16 @@ function PlayPageClient() {
         // 只选择和当前视频标题完全匹配的结果，如果有年份，还需要年份完全匹配
         const exactMatchs = results.filter(
           (result) =>
-            result.title.toLowerCase() === videoTitle.toLowerCase() &&
-            (videoYear
-              ? result.year.toLowerCase() === videoYear.toLowerCase()
+            result.title.toLowerCase() ===
+              videoTitleRef.current.toLowerCase() &&
+            (videoYearRef.current
+              ? result.year.toLowerCase() === videoYearRef.current.toLowerCase()
               : true) &&
-            (detail
-              ? (detail.episodes.length === 1 &&
+            (detailRef.current
+              ? (detailRef.current.episodes.length === 1 &&
                   result.episodes.length === 1) ||
-                (detail.episodes.length > 1 && result.episodes.length > 1)
+                (detailRef.current.episodes.length > 1 &&
+                  result.episodes.length > 1)
               : true)
         );
         if (exactMatchs.length > 0) {
@@ -462,9 +474,12 @@ function PlayPageClient() {
       setError(null);
 
       // 清除前一个历史记录
-      if (currentSource && currentId) {
+      if (currentSourceRef.current && currentIdRef.current) {
         try {
-          await deletePlayRecord(currentSource, currentId);
+          await deletePlayRecord(
+            currentSourceRef.current,
+            currentIdRef.current
+          );
           console.log('已清除前一个播放记录');
         } catch (err) {
           console.error('清除播放记录失败:', err);
@@ -476,7 +491,7 @@ function PlayPageClient() {
         source: newSource,
         id: newId,
         fallbackTitle: newTitle.trim(),
-        fallbackYear: videoYear,
+        fallbackYear: videoYearRef.current,
       });
 
       // 尝试跳转到当前正在播放的集数
@@ -939,12 +954,22 @@ function PlayPageClient() {
             onClick() {
               const newVal = !blockAdEnabled;
               try {
-                saveCurrentPlayProgress();
                 localStorage.setItem('enable_blockad', String(newVal));
+                if (artPlayerRef.current) {
+                  resumeTimeRef.current = artPlayerRef.current.currentTime;
+                  if (
+                    artPlayerRef.current.video &&
+                    artPlayerRef.current.video.hls
+                  ) {
+                    artPlayerRef.current.video.hls.destroy();
+                  }
+                  artPlayerRef.current.destroy();
+                  artPlayerRef.current = null;
+                }
+                setBlockAdEnabled(newVal);
               } catch (_) {
                 // ignore
               }
-              window.location.reload();
               return newVal ? '当前开启' : '当前关闭';
             },
           },
@@ -1053,7 +1078,7 @@ function PlayPageClient() {
       console.error('创建播放器失败:', err);
       setError('播放器初始化失败');
     }
-  }, [Artplayer, Hls, videoUrl, loading]);
+  }, [Artplayer, Hls, videoUrl, loading, blockAdEnabled]);
 
   // ---------------------------------------------------------------------------
   // 视频元素事件监听
@@ -1180,7 +1205,7 @@ function PlayPageClient() {
   if (loading) {
     return (
       <PageLayout activePath='/play'>
-        <div className='flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900'>
+        <div className='flex items-center justify-center min-h-screen bg-transparent'>
           <div className='text-center max-w-md mx-auto px-6'>
             {/* 动画影院图标 */}
             <div className='relative mb-8'>
@@ -1259,11 +1284,6 @@ function PlayPageClient() {
               <p className='text-xl font-semibold text-gray-800 dark:text-gray-200 animate-pulse'>
                 {loadingMessage}
               </p>
-              <p className='text-sm text-gray-500 dark:text-gray-400'>
-                {loadingStage === 'searching' && '正在为您寻找可用播放源...'}
-                {loadingStage === 'fetching' && '正在解析视频信息和播放列表...'}
-                {loadingStage === 'ready' && '一切准备就绪，马上就能观看啦！'}
-              </p>
             </div>
           </div>
         </div>
@@ -1274,7 +1294,7 @@ function PlayPageClient() {
   if (error) {
     return (
       <PageLayout activePath='/play'>
-        <div className='flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900'>
+        <div className='flex items-center justify-center min-h-screen bg-transparent'>
           <div className='text-center max-w-md mx-auto px-6'>
             {/* 错误图标 */}
             <div className='relative mb-8'>
@@ -1318,10 +1338,8 @@ function PlayPageClient() {
               <button
                 onClick={() =>
                   videoTitle
-                    ? (window.location.href = `/search?q=${encodeURIComponent(
-                        videoTitle
-                      )}`)
-                    : window.history.back()
+                    ? router.push(`/search?q=${encodeURIComponent(videoTitle)}`)
+                    : router.back()
                 }
                 className='w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl'
               >
