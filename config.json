@@ -77,6 +77,45 @@
       "api": "https://ikunzyapi.com/api.php/provide/vod",
       "name": "iKun资源"
     },
+    "heimuer2": {
+      "api": "https://json2.heimuer.xyz/api.php/provide/vod",
+      "name": "黑木耳国内",
+      "detail": "https://heimuer.tv"
+    },
+    "xinlang": {
+      "api": "https://api.xinlangapi.com/xinlangapi.php/provide/vod",
+      "name": "新浪资源",
+      "detail": "https://xinlangzy.com/"
+    },
+    "yaya": {
+      "api": "https://cj.yayazy.net/api.php/provide/vod",
+      "name": "鸭鸭资源",
+      "detail": "https://yayazy1.com/"
+    }，
+    "pubu": {
+      "api": "https://qddbrowser.com/api.php/provide/vod",
+      "name": "瀑布盘",
+      "detail": "https://www.pbpan.com/"
+    },  
+    "qilin": {
+      "api": "http://www.qilinzyz.com/api.php/provide/vod",
+      "name": "麒麟",
+      "detail": "https://www.qilinzyz.com/"
+    }， 
+    "feifei": {
+      "api": "https://taopianapi.com/cjapi/fei4/vod/json.html"，
+      "name": "飞飞影视"
+    },  
+    "shandian": {
+      "api": "https://xsd.sdzyapi.com/api.php/provide/vod",
+      "name": "闪电资源",
+      "detail": "https://suonizy.com/help/#More"
+    },  
+    "liangzi": {
+      "api": "https://cj.lziapi.com/api.php/provide/vod",
+      "name": "量子资源",
+      "detail": "https://lzizy.net/help/"
+    },
     "ckzy": {
         "api": "https://www.ckzy1.com/api.php/provide/vod",
         "name": "CK资源"
